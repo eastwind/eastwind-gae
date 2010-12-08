@@ -1,9 +1,18 @@
 application: eastwind-app
-version: 1
+version: pi3
 runtime: python
 api_version: 1
 
 handlers:
-- url: .*
+- url: /
   script: index.py
+
+- url: /download
+  script: index.py
+
+- url: /upload
+  script: index.py
+
+- url: /stylesheets
+  static_dir: stylesheets
 

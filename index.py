@@ -1,6 +1,7 @@
 import cgi
 import datetime
 import wsgiref.handlers
+import math
 
 from google.appengine.ext import db
 from google.appengine.api import users
@@ -49,6 +50,24 @@ class DownloadFile(webapp.RequestHandler):
 
 class Index(webapp.RequestHandler):
     def get(self):
+        self.response.out.write("""
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh">
+<head>
+   <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+   <title>Eastwind Exchange Market</title>
+   <link rel="stylesheet" href="/stylesheets/reset.css" />
+   <link rel="stylesheet" href="/stylesheets/style.css" />
+</head>
+<body>
+   <h1>On the rack</h1>
+	<table>
+	   <tr>
+	      <th>Package</th>
+	      <th>Uploader</th>
+	   </tr>
+        """)
+
         if self.request.get('page'):
             offset = int(self.request.get('page')) * 10
         else:
@@ -59,26 +78,43 @@ class Index(webapp.RequestHandler):
                            "OFFSET %d" % offset)
 
         for pkg in pkgs:
-            self.response.out.write("<p><a href='/download?id=%d'>%s</a></p><p>%s<br />By %s</p>" % (pkg.key().id(), pkg.title, pkg.note, pkg.author.nickname()))
-        pkg_count = Package.all().count()
+            self.response.out.write("""
+       <tr>
+	      <td>
+	         <h4><a href='/download?id=%d'>%s</a></h4>
+	         <span style="description">%s</span>
+	      </td>
+	      <td>%s</td>
+	   </tr>
+            """ % (pkg.key().id(), pkg.title, pkg.note, pkg.author.nickname()))
+        page_count = int(math.ceil(float(Package.all().count()) / 10.0))
+        self.response.out.write("</table><ul class='page'>")
+        for i in range(page_count):
+            self.response.out.write("<li><a href='/?page=%d'>%d</a></li>" % (i, i+1))
+        self.response.out.write("</ul>")
+
+        self.response.out.write("<h1>Stage your own!</h1>")
 
         if users.get_current_user():
             self.response.out.write("""
-            <div>
             <form action="/upload" method="post" enctype="multipart/form-
 data">
-                <p><label for="blob">Eastwind package</label><input type="file" name="blob" size="50"/></p>
-                <p><label for="note">Title</label><input type="text" name="title" value="" /></p>
-                <p><label for="note">Note</label><input type="text" name="note" value="" /></p>
-                <p><input type="submit" value="Upload package" /></p>
+            <table>
+                <tr><td><label for="blob">Eastwind package</label></td><td><input type="file" name="blob" size="50"/></td></tr>
+                <tr><td><label for="note">Title</label></td><td><input type="text" name="title" value="" /></td></tr>
+                <tr><td><label for="note">Note</label></td><td><input type="text" name="note" value="" /></td></tr>
+                <tr><td colspan="2"><input type="submit" value="Upload package" /></td></tr>
+            </table>
             </form>
-            </div>""")
+            """)
         else:
             self.response.out.write("""
             <div>
             <p>Please <a href="%s">log in</a> before uploading a package</p>
             </div>
             """ % users.create_login_url("/"))
+
+        self.response.out.write("</body></html>")
 
 application = webapp.WSGIApplication([
   ('/', Index),
